@@ -1,0 +1,8 @@
+streamlit==1.57.0
+chromadb==1.5.9
+PyPDF2==3.0.1
+python-docx==1.1.2
+faiss-cpu==1.8.0
+scikit-learn==1.5.2
+onnxruntime==1.17.0
+pypika==0.51.1
