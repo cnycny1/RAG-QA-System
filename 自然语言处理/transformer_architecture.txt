@@ -1,0 +1,77 @@
+Transformer架构详解
+
+Transformer是Google在2017年提出的一种新型神经网络架构，它彻底改变了自然语言处理领域。Transformer完全基于自注意力机制（Self-Attention），摒弃了传统的循环神经网络（RNN）结构。
+
+一、Transformer的核心组件
+
+1. 自注意力机制（Self-Attention）
+   - 允许模型在处理每个位置时关注输入序列中的所有位置
+   - 计算每个位置与其他位置之间的关联权重
+   - 多头注意力（Multi-Head Attention）使用多个注意力头并行计算
+
+2. 位置编码（Positional Encoding）
+   - 为输入序列中的每个位置添加位置信息
+   - 使用正弦和余弦函数生成位置编码
+   - 使模型能够理解序列的顺序关系
+
+3. 前馈神经网络（Feed-Forward Neural Network）
+   - 对每个位置进行独立的非线性变换
+   - 包含两层线性变换和ReLU激活函数
+
+4. 残差连接（Residual Connection）
+   - 解决深度神经网络训练中的梯度消失问题
+   - 将输入直接添加到输出上
+
+5. 层归一化（Layer Normalization）
+   - 加速训练过程
+   - 稳定梯度
+
+二、Transformer的结构
+
+1. 编码器（Encoder）
+   - 由N个相同的层堆叠而成
+   - 每层包含多头注意力和前馈网络
+   - 接收输入序列并输出隐藏表示
+
+2. 解码器（Decoder）
+   - 由N个相同的层堆叠而成
+   - 每层包含掩码多头注意力、编码器-解码器注意力和前馈网络
+   - 生成输出序列
+
+三、Transformer的优势
+
+1. 并行计算能力
+   - 相比RNN，Transformer可以并行处理所有位置
+   - 大大提高了训练效率
+
+2. 长距离依赖建模
+   - 自注意力机制可以直接捕捉长距离依赖
+   - 不受序列长度的限制
+
+3. 灵活的注意力模式
+   - 多头注意力允许模型学习不同类型的关系
+   - 提高了模型的表达能力
+
+四、Transformer的变体
+
+1. BERT（Bidirectional Encoder Representations from Transformers）
+   - 仅使用Transformer的编码器部分
+   - 双向上下文理解
+
+2. GPT（Generative Pre-trained Transformer）
+   - 仅使用Transformer的解码器部分
+   - 单向生成文本
+
+3. T5（Text-to-Text Transfer Transformer）
+   - 将所有NLP任务统一为文本到文本的形式
+   - 多任务学习框架
+
+五、Transformer的应用
+
+1. 机器翻译
+2. 文本摘要
+3. 问答系统
+4. 文本生成
+5. 情感分析
+
+Transformer架构已经成为现代NLP的基础，几乎所有的大型语言模型都基于这一架构。
