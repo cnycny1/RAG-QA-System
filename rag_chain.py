@@ -13,7 +13,8 @@ SYSTEM_PROMPT = """
 1. 仔细阅读并理解参考文档中的内容
 2. 如果文档中包含与问题相关的信息，请基于文档内容进行回答
 3. 如果文档中没有找到相关答案，请明确回复"文档中未找到相关答案"
-4. 回答要简洁明了，直接针对问题
+4. 回答要简洁明了，直接针对问题，不要包含无关内容
+5. 如果有多个相关点，请用列表形式清晰列出
 
 回答:
 """
@@ -29,9 +30,36 @@ def get_ollama_response(prompt, model="deepseek-r1:7b"):
     except subprocess.TimeoutExpired:
         return "Ollama请求超时，请检查网络连接或重试"
     except FileNotFoundError:
-        return "❌ Ollama未安装或未启动。请先安装Ollama并启动服务：\n\n1. 从 https://ollama.com/download 下载安装Ollama\n2. 运行命令: ollama serve\n3. 下载模型: ollama pull deepseek-r1:7b"
+        return None
     except Exception as e:
-        return f"Ollama调用失败: {str(e)}"
+        return None
+
+def extract_relevant_content(text, question, max_length=500):
+    keywords = ["应用场景", "发展历程", "主要任务", "挑战", "优势", "区别", "架构", "核心组件", "功能", "特点", "作用", "定义", "概念"]
+    
+    for keyword in keywords:
+        if keyword in question:
+            start_idx = text.find(keyword)
+            if start_idx != -1:
+                end_idx = text.find("、", start_idx + 30)
+                if end_idx == -1:
+                    end_idx = text.find("\n\n", start_idx)
+                if end_idx == -1:
+                    end_idx = min(start_idx + max_length, len(text))
+                return text[start_idx:end_idx].strip()
+    
+    lines = text.split("\n")
+    result_lines = []
+    
+    question_tokens = question.replace("？", "").replace("?", "").replace("的", " ").split()
+    
+    for line in lines:
+        if any(token in line for token in question_tokens):
+            result_lines.append(line.strip())
+        elif len(result_lines) > 0 and line.strip() and not line.strip()[0].isdigit():
+            result_lines.append(line.strip())
+    
+    return "\n".join(result_lines)[:max_length]
 
 def simple_rag_query(db, question, top_k=3):
     from utils import search_similar
@@ -39,26 +67,33 @@ def simple_rag_query(db, question, top_k=3):
     if db is None:
         return "❌ 知识库尚未构建。请先上传文档并点击'构建知识库'按钮。"
     
-    results = search_similar(db, question, top_k)
+    results = search_similar(db, question, k=top_k)
     
     if not results:
         return "文档中未找到相关答案"
     
     context = "\n\n".join([r["document"] for r in results])
     
-    prompt = SYSTEM_PROMPT.format(context=context, question=question)
+    response = get_ollama_response(SYSTEM_PROMPT.format(context=context, question=question))
     
-    response = get_ollama_response(prompt)
-    
-    if response:
-        if "❌" in response or "Ollama" in response or "超时" in response:
-            summary = "根据文档内容，以下是相关信息：\n\n"
-            for i, r in enumerate(results, 1):
-                summary += f"【参考{i}】{r['document'][:200]}...\n\n"
-            summary += "\n💡 提示：为获得更好的问答体验，请安装Ollama本地大模型。"
-            return summary
-        if "文档中未找到相关答案" in response:
-            return "文档中未找到相关答案"
+    if response and "文档中未找到相关答案" not in response:
         return response
-    else:
-        return "文档中未找到相关答案"
+    
+    answer = f"**{question}**\n\n"
+    used_sources = set()
+    
+    for i, r in enumerate(results, 1):
+        source = r["metadata"]["source"]
+        if source in used_sources:
+            continue
+        
+        relevant = extract_relevant_content(r["document"], question)
+        
+        if relevant:
+            used_sources.add(source)
+            answer += f"**【{source}】**\n{relevant}\n\n"
+    
+    if len(used_sources) == 0:
+        answer += "文档中未找到相关答案"
+    
+    return answer
