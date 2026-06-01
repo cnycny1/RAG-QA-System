@@ -65,9 +65,12 @@ with col1:
                 
                 if text.strip():
                     documents.append((uploaded_file.name, text))
+                    st.write(f"✅ {uploaded_file.name}: 读取到 {len(text)} 个字符")
+                else:
+                    st.write(f"⚠️ {uploaded_file.name}: 未读取到有效内容")
             
             if not documents:
-                st.error("❌ 未找到有效文档内容")
+                st.error("❌ 未找到有效文档内容，请检查文件格式")
             else:
                 status_text.text("正在创建向量数据库...")
                 progress_bar.progress((total_files + 1) / (total_files + 2))
@@ -80,12 +83,38 @@ with col1:
                     st.session_state.db_initialized = True
                     progress_bar.progress(1.0)
                     status_text.text("")
-                    st.success(f"✅ 知识库构建完成！共处理 {len(documents)} 个文档")
+                    st.success(f"✅ 知识库构建完成！共处理 {len(documents)} 个文档，生成 {st.session_state.document_count} 个文本块")
                 else:
-                    st.error("❌ 创建向量数据库失败")
+                    st.error("❌ 创建向量数据库失败，请检查控制台输出获取详细信息")
         except Exception as e:
             st.error(f"❌ 处理过程中发生错误: {str(e)}")
-    elif build_btn:
+            import traceback
+            st.text(traceback.format_exc())
+    
+    st.markdown("---")
+    st.subheader("快速体验")
+    if st.button("使用示例文档构建知识库", use_container_width=True):
+        with st.spinner("正在加载示例文档..."):
+            try:
+                from utils import load_documents_from_folder
+                sample_docs = load_documents_from_folder("./自然语言处理")
+                
+                if sample_docs:
+                    st.write(f"找到 {len(sample_docs)} 个示例文档")
+                    vectordb = create_vector_db(sample_docs, "./vector_db")
+                    
+                    if vectordb:
+                        st.session_state.vectordb = vectordb
+                        st.session_state.document_count = get_documents_count(vectordb)
+                        st.session_state.db_initialized = True
+                        st.success(f"✅ 示例知识库构建完成！共 {st.session_state.document_count} 个文本块")
+                    else:
+                        st.error("❌ 创建示例知识库失败")
+                else:
+                    st.warning("⚠️ 未找到示例文档")
+            except Exception as e:
+                st.error(f"❌ 加载示例文档失败: {str(e)}")
+    elif build_btn and not uploaded_files:
         st.warning("⚠️ 请先上传文档")
     
     if load_btn:
